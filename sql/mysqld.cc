@@ -6353,10 +6353,16 @@ void handle_connections_sockets()
     socket_count++
 #else
   fd_set readFDs,clientFDs;
-  uint max_used_connection= max<uint>(mysql_socket_getfd(base_ip_sock),
-                                      mysql_socket_getfd(unix_sock),
-                                      mysql_socket_getfd(extra_ip_sock)) + 1;
-#define setup_fds(X)    FD_SET(X,&clientFDs)
+
+#define L_MAX3(a, b, c) ( (a>b) ? ((c>a) ? c : a) : ((c>b) ? c : b) )
+  int max_used_connection = L_MAX3(
+					mysql_socket_getfd(base_ip_sock),
+					mysql_socket_getfd(unix_sock),
+					mysql_socket_getfd(extra_ip_sock)
+				) + 1;
+#undef L_MAX3
+
+#define setup_fds(X)    FD_SET(X.fd,&clientFDs)
 #endif
 
   DBUG_ENTER("handle_connections_sockets");
@@ -6455,7 +6461,7 @@ void handle_connections_sockets()
       else
       if (FD_ISSET(mysql_socket_getfd(extra_ip_sock), &readFDs)) {
         sock = extra_ip_sock;
-        flags= extra_ip_flagss;
+        flags= extra_ip_flags;
       }
 #endif // HAVE_POLL
 
